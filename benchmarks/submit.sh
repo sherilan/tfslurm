@@ -7,7 +7,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 if [ -z $EMAIL_TO ]; then echo 'Error: $EMAIL_TO env variable must be set'; exit 1; fi 
 
 # Get job directory, either from env or as first positional argument
-JOBDIR=${JOBNAME:-$1}
+JOBDIR=`basename ${JOBNAME:-$1}`
 # Make sure it is set
 if [ -z $JOBDIR ]; then echo 'Error: $JOBNAME env variable must be set or passed as first positional argument'; exit 1; fi
 echo "Using jobdir: $JOBDIR"
@@ -54,7 +54,7 @@ VERSIONS=`ls $JOBDIR | grep "$GREP_SWITCH" '^v\d+$'`
 echo "Found versions: `echo $VERSIONS | sed`"
 # Set next version to be the highest current version, incremented by one
 NEXT_VERSION=`python -c "print( max( map( int, ( x[1:] for x in \"\"\"v-1\n$VERSIONS\"\"\".split('\n') if x.strip() ))) + 1 )"`
-VERSIONDIR="$JOBDIR/v$NEXT_VERSION" 
+VERSIONDIR=`python -c "import os; print( os.path.join( '$JOBDIR', 'v$NEXT_VERSION' ))"`
 echo "Next version: $VERSIONDIR"
 if [ -d $VERSIONDIR ]; then echo 'Error: version dir already exists'; exit 1; fi 
 # Prompt user before continuing
@@ -78,12 +78,10 @@ else
 fi 
 # Escape filepaths, as they will otherwise mess with sed expressions
 VERSIONDIR_ESCAPED=$(echo $VERSIONDIR | sed -e 's/\//\\\//')
-BENCHMARK_SCRIPT_ESCAPED=$(echo run_benchmark.py | sed -e 's/\//\\\//')
 # Parse template
 cat job.template.slurm | sed \
     -e 's/{email_to}/'$EMAIL_TO'/' \
     -e 's/{jobdir}/'$VERSIONDIR_ESCAPED'/' \
-    -e 's/{benchmark_script}/'$BENCHMARK_SCRIPT_ESCAPED'/' \
     -e 's/{tasks}/'$TASKS'/' \
     -e 's/{nodes}/'$NODES'/' \
     -e 's/{tasks_per_node}/'$TASKS_PER_NODE'/' \
