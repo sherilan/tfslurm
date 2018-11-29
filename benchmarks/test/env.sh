@@ -1,0 +1,9 @@
+
+
+LOCAL='false'
+GPUS='gpu:P100:2'
+TASKS='6'
+NODES='3'
+TASKS_PER_NODE='2'
+NUM_PS='2'
+BATCH_SIZE='128'
