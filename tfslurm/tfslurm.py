@@ -241,18 +241,37 @@ class TFSlurm( object ):
 
 
   @classmethod
-  def create_logger( cls, taskname, logdir=None, logfmt=None, loglevel=None ):
+  def create_logger( cls, taskname, logdir=None, logfmt=None, loglevel=None, shlevel=None, fhlevel=None ):
     '''
     Set up a logger for the task. It's just a normal python logger
     configured such that ERROR and worse will be sent to stdout,
     which is shared between slurm tasks, whereas everything down
     to DEBUG will in addition be written to a dedicated file.
+    
+    Args:
+    - taskname : string
+      Name of task, used in the stream handler logging prefix and as
+      filename for the filehandler
+    - logidr : string 
+      Optional directory for log files. If set, then the directory will be 
+      created and a file handler will be attached to the logger
+    - logfmt : string
+      Optional format for log entries
+    - loglevel : string | logging.<LEVEL>
+      Optional overal level for logging. Defaults to logging.DEBUG
+    - shlevel : string | logging.<LEVEL>
+      Optional level for the stream handler
+    - fhlevel : string | logging.<level>
+      Optional level for the file handler
+
+    Returns:
+      A python logging logger
     '''
     logger = logging.getLogger( 'tfslurm' )
-    logger.setLevel( loglevel or logging.INFO )
+    logger.setLevel( loglevel or logging.DEBUG )
     # Create stream handler for ERRORS and above
     sh = logging.StreamHandler()
-    sh.setLevel( logging.DEBUG )
+    sh.setLevel( shlevel or logging.ERROR )
     sh.setFormatter( logging.Formatter( logfmt or '%(levelname)-8s %(asctime)s '+taskname+' :: %(message)s' ))
     logger.addHandler( sh )
     # Create a filehandler for everything down to debug if a logdir is provided
@@ -260,7 +279,7 @@ class TFSlurm( object ):
       if not os.path.exists( logdir ):
         os.makedirs( logdir )
       fh = logging.FileHandler( os.path.join( logdir, taskname+'.log' ))
-      fh.setLevel( logging.DEBUG )
+      fh.setLevel( fhlevel or logging.INFO )
       fh.setFormatter( logging.Formatter( logfmt or '%(levelname)-8s %(asctime)s :: %(message)s' ))
       logger.addHandler( fh )
 
