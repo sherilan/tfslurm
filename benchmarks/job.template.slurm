@@ -28,4 +28,4 @@ module load cuDNN/7
 # Activate virtualenv
 source venv/bin/activate
 # Call benchmark script
-srun python {benchmark_script} --jobdir {jobdir} --batch_size {batch_size} --num-ps {num_ps} {extra_args}
+srun python run_benchmark.py --jobdir {jobdir} --batch_size {batch_size} --num-ps {num_ps} {extra_args}
