@@ -140,12 +140,13 @@ class TFSlurm( object ):
 
 
   @classmethod
-  def create_local( cls ):
+  def create_local( cls, logger_opts=None ):
     '''
     Create a TFSlurm dummy object that contains the same methods
     and properties, except intended for local use.
     '''
-    return TFLocal()
+    logger = cls.create_logger( 'local', **(logger_opts or {}) )
+    return TFLocal( logger )
 
 
   @classmethod
@@ -382,17 +383,23 @@ class TFSlurm( object ):
 
 class TFLocal( TFSlurm ):
 
-  def __init__( self ):
-    self.num_ps = 1 
-    self.num_workers = 1
-    self.is_ps = True
-    self.is_worker = True 
-    self.is_chief = True 
-    self.device_setter = None 
-    self.worker_device = None 
-    self.ps_devices = [ None ]
-    self.server = None 
+  num_ps        = 1 
+  num_workers   = 1
+  is_ps         = True
+  is_worker     = True 
+  is_chief      = True 
+  device_setter = None 
+  worker_device = None 
+  ps_devices    = [ None ]
+  server        = None 
 
+  def __init__( self, logger=None, gpu_frac=None ):
+    self.logger = logger or logging.getLogger( 'tfslurm' )
+    self.cluster = {}
+    self.my_job_name = 'local'
+    self.my_job_index = 0
+    self.gpu_frac = gpu_frac or 1.0
+  
   def start_server( self ):
     return self
 
