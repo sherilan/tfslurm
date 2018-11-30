@@ -3,9 +3,9 @@ Module for benchmarking performance improvements
 '''
 import tensorflow as tf 
 import numpy as np 
+import pandas as pd 
 import argparse
 import pickle 
-import tqdm
 import time
 import glob 
 import sys 
@@ -30,21 +30,36 @@ parser.add_argument( '--num-ps',
 )
 parser.add_argument( '--local',
   help     = 'Whether to run locally (not distributed)',
-  action   = 'Store true'
+  action   = 'store_true'
 )
 args = parser.parse_args()
-
 if args.local:
-  tfslurm = TFSlurm.create_local()
+  tfslurm = TFSlurm.create_local( dict( logdir=args.jobdir, shlevel='INFO' ))
   tfslurm.logger.info( 'Created local TFSlurm')
 else:
   assert args.num_ps is not None, 'Number of parameter servers must be set when running distributed'
   tfslurm = TFSlurm.from_slurm_env( 
     num_ps=args.num_ps, 
     base_port=2222, 
-    logger_opts=dict( logdir=args.jobdir )  
+    logger_opts=dict( logdir=args.jobdir, shlevel='INFO' )  
   )
   tfslurm.logger.info( 'Created distributed TFSlurm' )
+
+
+tfslurm.logger.info( f'cluster    : { tfslurm.cluster }' )
+tfslurm.logger.info( f'job name   : { tfslurm.my_job_name }' )
+tfslurm.logger.info( f'job index  : { tfslurm.my_job_index }' )
+tfslurm.logger.info( f'gpu frac   : { tfslurm.gpu_frac }' )
+tfslurm.logger.info( f'num_ps     : { tfslurm.num_ps }' )
+tfslurm.logger.info( f'num_workers: { tfslurm.num_workers }' )
+tfslurm.logger.info( f'is ps      : { tfslurm.is_ps }' )
+tfslurm.logger.info( f'is worker  : { tfslurm.is_worker }' )
+tfslurm.logger.info( f'is chief   : { tfslurm.is_chief }' )
+tfslurm.logger.info( f'dev setter : { tfslurm.device_setter }' )
+tfslurm.logger.info( f'worker dev : { tfslurm.worker_device }' )
+tfslurm.logger.info( f'ps devs    : { tfslurm.ps_devices }' )
+tfslurm.logger.info( f'server     : { tfslurm.server }' )
+sys.exit(0)
 
 # Cat vs dogs dataset is assumed
 PATH    = 'data/train/*.jpg'
@@ -72,7 +87,7 @@ if CACHE_X is None or not os.path.exists( CACHE_X ):
   n_dogs = 0
   n_cats = 0
 
-  for filepath in tqdm.tqdm( filepaths ):
+  for filepath in filepaths:
     
     if 'dog' in os.path.basename( filepath ):
       if n_dogs >= MAX_D: continue
@@ -156,15 +171,12 @@ class MonitoringCallback( tf.keras.callbacks.Callback ):
     self.prev_t = t 
 
   def finalize( self ):
-    import pandas as pd 
     data = pd.DataFrame( dict(
       times = self.times,
       losses = self.losses,
       accuracies = self.accuracies
     ))
-    print( data )
-
-
+    data.to_csv( os.path.join( args.jobdir, f'data.{tfslurm.my_job_name}_{my_job_index}.csv'))
 
 model.compile(
   loss='categorical_crossentropy',
